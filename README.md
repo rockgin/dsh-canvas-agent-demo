@@ -108,7 +108,9 @@ packages/client/ui-canvas-agent-demo/
 ### 前置
 
 - 一份 DeepSeek Harness 源码
-- Node ≥ 20、pnpm
+- Node ≥ 24.9、pnpm 11
+
+Node 版本低于 24.9 时，dsh 的 `scripts/build.ts` 会因 `import.meta.main` 不可用而静默跳过全部构建步骤（退出码仍是 0），看起来像成功其实什么都没做。
 
 示例按 dsh `0.2.2-rc.3` 的公开契约编写。Developer Preview 阶段接口可能变动，升级时请先看 dsh 的 CHANGELOG。
 

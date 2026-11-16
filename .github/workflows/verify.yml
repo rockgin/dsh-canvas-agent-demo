@@ -56,6 +56,19 @@ jobs:
         working-directory: demo
         run: node scripts/install-into-dsh.mjs "$DSH_ROOT"
 
+      # dsh build scripts rely on `import.meta.main` (Node 24.9+) and silently
+      # no-op on older 24.x, so fail loudly instead of reporting a fake pass.
+      - name: Check the toolchain
+        working-directory: dsh
+        run: |
+          node -e '
+            const [major, minor] = process.versions.node.split(".").map(Number)
+            if (major < 24 || (major === 24 && minor < 9)) {
+              console.error(`Node ${process.versions.node} is too old; dsh needs >= 24.9`)
+              process.exit(1)
+            }
+          '
+
       # The plugin adds a workspace package, so the pinned lockfile no longer
       # matches. This is the one place where a non-frozen install is correct.
       - name: Install workspace dependencies
