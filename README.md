@@ -117,9 +117,20 @@ packages/client/ui-canvas-agent-demo/
 ```bash
 node scripts/install-into-dsh.mjs /path/to/deepseek-harness
 cd /path/to/deepseek-harness
-pnpm install
-pnpm dsh web
+pnpm install --no-frozen-lockfile
+pnpm build
+pnpm dsh web --patch ./canvas-agent.overlay.yml --no-open --port 3080
 ```
+
+安装脚本做三件事：
+
+1. 把 `packages/client/ui-canvas-agent-demo` 复制到目标仓库同一路径；
+2. 把该包写进 `tsconfig.client.json` 的 references（dsh 的 typecheck/build 只认这份显式列表，不加就完全不覆盖你的包）；
+3. 生成 `canvas-agent.overlay.yml`。
+
+第 3 步容易被忽略：**dsh 的浏览器插件是从组合文件里读 roster，不是扫描目录**。`package.json` 的 `dsh.client` 只声明依赖关系，不会让插件自动出现在运行时页面里；必须通过 overlay 的 `insert` 行把插件加进 web 组合。
+
+Desktop 走的是另一套 bundle/profile 组合，`pnpm dev:desktop` 不会读取这个 overlay。要在 Desktop 里验证，需把同一行写进对应 profile 的 `cordis.patch.yml`。
 
 重复安装时加 `--force`：
 
@@ -127,8 +138,19 @@ pnpm dsh web
 node scripts/install-into-dsh.mjs /path/to/deepseek-harness --force
 ```
 
-安装脚本只做一件事：把 `packages/client/ui-canvas-agent-demo` 复制到目标仓库的同一路径。
-`package.json` 里的 `dsh.client` 字段会让 dsh 在启动时发现它，无需改任何现有代码。
+### CI 验证
+
+`.github/workflows/verify.yml` 会在 GitHub Actions 上做完整验证：
+
+1. 检出 dsh 到固定 commit（`DSH_REF`，与插件版本对应）；
+2. 安装 demo 包并打上 `tsconfig.client.json` 与 overlay；
+3. `pnpm install --no-frozen-lockfile`；
+4. `pnpm typecheck`（整条 client face，包含本包）；
+5. `pnpm build:artifacts`；
+6. 断言 `lib/client.js` 产物存在且包含插件标识；
+7. 真实启动 `dsh web`，用 HTTP 断言首页与 `/plugins/<包名>/client.js` 均可访问。
+
+升级 dsh 时，同步修改 `DSH_REF` 与插件 `package.json` 里的 `@deepseek-ai/*` 版本即可。
 
 ### 预期效果
 

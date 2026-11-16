@@ -1,0 +1,126 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The demo is a plugin, so it is verified inside a real Harness checkout at a
+  # pinned revision. Bump this together with the @deepseek-ai/* versions in the
+  # plugin's package.json.
+  DSH_REF: 39163dd30f703a79079e2d2446545cff3c453738
+  DSH_TELEMETRY_DISABLED: '1'
+  PLUGIN_ID: '@dsh-demo/dsh-client-ui-canvas-agent'
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DSH_ROOT: ${{ github.workspace }}/dsh
+
+    steps:
+      - name: Check out the demo
+        uses: actions/checkout@v4
+        with:
+          path: demo
+
+      - name: Check out DeepSeek Harness at the pinned revision
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: ${{ env.DSH_REF }}
+          path: dsh
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: dsh/pnpm-lock.yaml
+
+      - name: Install the demo plugin into the checkout
+        working-directory: demo
+        run: node scripts/install-into-dsh.mjs "$DSH_ROOT"
+
+      # The plugin adds a workspace package, so the pinned lockfile no longer
+      # matches. This is the one place where a non-frozen install is correct.
+      - name: Install workspace dependencies
+        working-directory: dsh
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Type-check the whole client face
+        working-directory: dsh
+        run: pnpm typecheck
+
+      - name: Build host, client, and web artifacts
+        working-directory: dsh
+        run: pnpm build:artifacts
+
+      - name: Assert the plugin bundle was emitted
+        working-directory: dsh
+        run: |
+          set -euo pipefail
+          lib=packages/client/ui-canvas-agent-demo/lib
+          test -f "$lib/index.js"
+          test -f "$lib/client.js"
+          grep -q 'canvas-agent-floating' "$lib/client.js"
+          echo "plugin bundle present: $(wc -c < "$lib/client.js") bytes"
+
+      # Boots the real web profile and proves the browser roster serves the
+      # plugin module. No browser is needed: the assertions are HTTP-level.
+      - name: Boot the web app and fetch the plugin asset
+        working-directory: dsh
+        run: |
+          set -euo pipefail
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+
+          pnpm dsh web --patch ./canvas-agent.overlay.yml --no-open --port 0 > web.log 2>&1 &
+          pid=$!
+
+          url=''
+          for _ in $(seq 1 150); do
+            url=$(grep -oE 'http://127\.0\.0\.1:[0-9]+' web.log | head -n1 || true)
+            if [ -n "$url" ]; then break; fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo 'web process exited before printing a URL'
+              cat web.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          if [ -z "$url" ]; then
+            echo 'timed out waiting for the web URL'
+            cat web.log
+            exit 1
+          fi
+          echo "serving at $url"
+
+          curl -fsS "$url/" -o index.html
+          grep -q 'id="root"' index.html
+
+          curl -fsS "$url/plugins/$PLUGIN_ID/client.js" -o plugin.js
+          grep -q 'canvas-agent-floating' plugin.js
+          echo 'web smoke passed'
+
+      - name: Upload web log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-log
+          path: dsh/web.log
+          if-no-files-found: ignore
