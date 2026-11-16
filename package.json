@@ -1,0 +1,12 @@
+{
+  "name": "dsh-canvas-agent-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo module: a canvas-first DeepSeek Harness client plugin with inline 'ask agent' and an anchored floating conversation window.",
+  "scripts": {
+    "install:dsh": "node scripts/install-into-dsh.mjs",
+    "check:isolation": "node scripts/check-isolation.mjs"
+  },
+  "license": "MIT"
+}

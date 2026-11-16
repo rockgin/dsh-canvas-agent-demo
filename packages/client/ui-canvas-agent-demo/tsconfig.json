@@ -1,0 +1,17 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../api/session-controller/tsconfig.client.json" },
+    { "path": "../ui-conversation/tsconfig.client.json" },
+    { "path": "../ui-layout/tsconfig.json" },
+    { "path": "../ui-renderer/tsconfig.json" },
+    { "path": "../ui-session/tsconfig.json" },
+    { "path": "../ui-sidebar/tsconfig.json" },
+    { "path": "../ui-slots/tsconfig.json" }
+  ]
+}

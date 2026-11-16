@@ -1,0 +1,102 @@
+/*
+ * Root overlay layers are click-through by default. The window re-enables
+ * pointer events on itself so the canvas underneath stays interactive.
+ */
+.window {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  inline-size: 440px;
+  block-size: 600px;
+  max-inline-size: calc(100vw - 16px);
+  max-block-size: calc(100vh - 16px);
+  border: 1px solid var(--dsw-alias-border-l2, #2b313c);
+  border-radius: 14px;
+  background: var(--dsw-alias-bg-overlay, #12161d);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-block-end: 1px solid var(--dsw-alias-border-l1, #262b35);
+  background: var(--dsw-alias-bg-layer-1, #151a22);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary, #9aa3b2);
+}
+
+.dot {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary, #6f7887);
+}
+
+.dot[data-phase='ready'] {
+  background: var(--dsw-alias-brand-primary, #4c8dff);
+}
+
+.dot[data-phase='creating'] {
+  background: var(--dsw-alias-hovercard-state-done, #46c07a);
+}
+
+.dot[data-phase='error'] {
+  background: var(--dsw-alias-hovercard-state-error, #ff6b6b);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary, #6f7887);
+  background: var(--dsw-alias-bg-layer-2, #1f242d);
+}
+
+.iconButton {
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #9aa3b2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  border-color: var(--dsw-alias-border-l2, #2b313c);
+  color: var(--dsw-alias-label-primary, #e7e9ee);
+}
+
+.body {
+  flex: 1;
+  min-block-size: 0;
+  display: flex;
+}
+
+.placeholder {
+  margin: auto;
+  padding: 24px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary, #6f7887);
+  text-align: center;
+}

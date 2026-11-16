@@ -1,0 +1,23 @@
+.island {
+  flex: 1;
+  min-block-size: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.readOnly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  padding: 10px 14px;
+  border: 1px dashed var(--dsw-alias-border-l2, #2b313c);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary, #9aa3b2);
+  background: var(--dsw-alias-bg-layer-1, #12161d);
+}
+
+.readOnlyHint {
+  color: var(--dsw-alias-label-tertiary, #6f7887);
+}
