@@ -133,9 +133,17 @@ jobs:
           curl -fsSL -c "$jar" -b "$jar" "$launch" -o index.html
           grep -q 'id="root"' index.html
 
-          curl -fsS -c "$jar" -b "$jar" "$origin/plugins/$PLUGIN_ID/client.js" -o plugin.js
+          # Browser entries are revision-addressed combo URLs, so read the URL
+          # from the inlined boot graph instead of guessing a package path.
+          asset=$(node ../scripts/find-boot-entry.mjs index.html "$PLUGIN_ID")
+          case "$asset" in
+            /*) target="$origin$asset" ;;
+            *) target="$origin/$asset" ;;
+          esac
+
+          curl -fsS -b "$jar" "$target" -o plugin.js
           grep -q 'canvas-agent-floating' plugin.js
-          echo 'web smoke passed'
+          echo "web smoke passed: $(wc -c < plugin.js) bytes served"
 
       - name: Upload web log
         if: failure()
