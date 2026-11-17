@@ -135,7 +135,7 @@ jobs:
 
           # Browser entries are revision-addressed combo URLs, so read the URL
           # from the inlined boot graph instead of guessing a package path.
-          asset=$(node ../scripts/find-boot-entry.mjs index.html "$PLUGIN_ID")
+          asset=$(node ../demo/scripts/find-boot-entry.mjs index.html "$PLUGIN_ID")
           case "$asset" in
             /*) target="$origin$asset" ;;
             *) target="$origin/$asset" ;;
