@@ -124,13 +124,14 @@ pnpm build
 pnpm dsh web --patch ./canvas-agent.overlay.yml --no-open --port 3080
 ```
 
-安装脚本做三件事：
+安装脚本做四件事：
 
 1. 把 `packages/client/ui-canvas-agent-demo` 复制到目标仓库同一路径；
 2. 把该包写进 `tsconfig.client.json` 的 references（dsh 的 typecheck/build 只认这份显式列表，不加就完全不覆盖你的包）；
-3. 生成 `canvas-agent.overlay.yml`。
+3. 把该包写进 `packages/bundle/web-app/package.json` 的 `dependencies`；
+4. 生成 `canvas-agent.overlay.yml`。
 
-第 3 步容易被忽略：**dsh 的浏览器插件是从组合文件里读 roster，不是扫描目录**。`package.json` 的 `dsh.client` 只声明依赖关系，不会让插件自动出现在运行时页面里；必须通过 overlay 的 `insert` 行把插件加进 web 组合。
+第 3、4 步是两回事，都不可省。**profile 条目按安装包的依赖闭包解析**：`$DSH_HOME/profiles/web` 里的条目只能 import 到从 installAnchor 沿 package.json 依赖 BFS 可达的包，工作区里存在但不在闭包内的包会以 `ERR_MODULE_NOT_FOUND` 在 boot 时被跳过（跑起来只有一条 `warning: 1 entry did not activate`）。而 **dsh 的浏览器插件是从组合文件里读 roster，不是扫描目录**：`package.json` 的 `dsh.client` 只声明依赖关系，不会让插件自动出现在运行时页面里，必须通过 overlay 的 `insert` 行把插件加进 web 组合。
 
 Desktop 走的是另一套 bundle/profile 组合，`pnpm dev:desktop` 不会读取这个 overlay。要在 Desktop 里验证，需把同一行写进对应 profile 的 `cordis.patch.yml`。
 
@@ -150,7 +151,7 @@ node scripts/install-into-dsh.mjs /path/to/deepseek-harness --force
 4. `pnpm typecheck`（整条 client face，包含本包）；
 5. `pnpm build:artifacts`；
 6. 断言 `lib/client.js` 产物存在且包含插件标识；
-7. 真实启动 `dsh web`，用 HTTP 断言首页与 `/plugins/<包名>/client.js` 均可访问。
+7. 真实启动 `dsh web`：用打印出的带 token 的 URL 换 cookie（裸 `/` 是 401），取首页后从内联的 `window.__DSH_BOOT__` 图中解析出本插件的 revision 寻址资源 URL，再断言该资源可访问且包含插件标识。
 
 升级 dsh 时，同步修改 `DSH_REF` 与插件 `package.json` 里的 `@deepseek-ai/*` 版本即可。
 
