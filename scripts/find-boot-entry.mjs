@@ -59,7 +59,7 @@ if (end < 0) {
 }
 
 const graph = JSON.parse(html.slice(start, end))
-const entries = (graph.batches ?? []).flatMap(batch => batch.entries ?? [])
+const entries = graph.entries ?? []
 const hit = entries.find(entry => entry.id === pluginId)
 if (hit === undefined) {
   console.error(`plugin ${pluginId} is not in the boot graph; saw:`)
