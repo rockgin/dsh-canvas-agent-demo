@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const source = join(repoRoot, 'packages/client/ui-canvas-agent-demo')
+const PLUGIN_NAME = '@dsh-demo/dsh-client-ui-canvas-agent'
 
 const args = process.argv.slice(2)
 const force = args.includes('--force')
@@ -76,10 +77,23 @@ function ensureClientReference() {
 }
 
 /**
- * The web roster is a composition file, not a directory scan: the plugin only
- * loads at runtime when a row names it. Writing an overlay keeps the checkout
- * untouched; pass it with `--patch`.
+ * Profile entries resolve through the installation's dependency closure, not
+ * the workspace. Declaring the plugin on the web bundle puts it in that
+ * closure, so the profile can import it by package name at boot.
  */
+function ensureBundleDependency() {
+  const packagePath = join(targetRepo, 'packages/bundle/web-app/package.json')
+  if (!existsSync(packagePath)) return 'missing packages/bundle/web-app/package.json'
+
+  const manifest = JSON.parse(readFileSync(packagePath, 'utf8'))
+  manifest.dependencies ??= {}
+  if (manifest.dependencies[PLUGIN_NAME] !== undefined) return 'already present'
+
+  manifest.dependencies[PLUGIN_NAME] = 'workspace:*'
+  writeFileSync(packagePath, `${JSON.stringify(manifest, null, 2)}\n`)
+  return 'added'
+}
+
 function writeOverlay() {
   const overlayPath = join(targetRepo, 'canvas-agent.overlay.yml')
   writeFileSync(
@@ -89,7 +103,7 @@ function writeOverlay() {
       '# Pass with: pnpm dsh web --patch ./canvas-agent.overlay.yml',
       '- insert:',
       '    - id: ui-canvas-agent-demo',
-      "      name: '@dsh-demo/dsh-client-ui-canvas-agent'",
+      `      name: '${PLUGIN_NAME}'`,
       '',
     ].join('\n'),
   )
@@ -97,10 +111,12 @@ function writeOverlay() {
 }
 
 const reference = ensureClientReference()
+const dependency = ensureBundleDependency()
 const overlay = writeOverlay()
 
 console.log(`Installed demo plugin into ${destination}`)
 console.log(`tsconfig.client.json reference: ${reference}`)
+console.log(`web-app dependency: ${dependency}`)
 console.log(`Web overlay written to ${overlay}`)
 console.log('')
 console.log('Next steps:')
